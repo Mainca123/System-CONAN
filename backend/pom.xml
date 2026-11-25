@@ -1,0 +1,7 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"><modelVersion>4.0.0</modelVersion>
+<groupId>vn.conan</groupId><artifactId>bookshop</artifactId><version>1.0</version><packaging>pom</packaging>
+<modules><module>common</module><module>catalog</module><module>orders</module><module>assistant</module></modules>
+<properties><maven.compiler.release>17</maven.compiler.release><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding><quarkus.version>3.27.2</quarkus.version><compiler-plugin.version>3.14.0</compiler-plugin.version></properties>
+<dependencyManagement><dependencies><dependency><groupId>io.quarkus.platform</groupId><artifactId>quarkus-bom</artifactId><version>${quarkus.version}</version><type>pom</type><scope>import</scope></dependency></dependencies></dependencyManagement>
+<build><plugins><plugin><artifactId>maven-compiler-plugin</artifactId><version>${compiler-plugin.version}</version><configuration><parameters>true</parameters></configuration></plugin></plugins></build>
+</project>

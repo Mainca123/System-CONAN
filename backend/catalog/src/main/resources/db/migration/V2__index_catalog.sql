@@ -1,0 +1,1 @@
+INSERT INTO outbox(event_id,topic,aggregate_id,payload) SELECT UUID(),'catalog.changed',CAST(id AS CHAR),JSON_OBJECT('id',id) FROM books;

@@ -1,0 +1,8 @@
+**/target/
+**/node_modules/
+frontend/dist/
+frontend/test-results/
+.env
+backend/.env
+*.log
+.DS_Store

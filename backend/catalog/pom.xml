@@ -1,0 +1,9 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"><modelVersion>4.0.0</modelVersion>
+<parent><groupId>vn.conan</groupId><artifactId>bookshop</artifactId><version>1.0</version></parent><artifactId>catalog</artifactId>
+<dependencies><dependency><groupId>io.quarkus</groupId><artifactId>quarkus-rest-jackson</artifactId></dependency>
+<dependency><groupId>io.quarkus</groupId><artifactId>quarkus-jdbc-mysql</artifactId></dependency>
+<dependency><groupId>io.quarkus</groupId><artifactId>quarkus-oidc</artifactId></dependency>
+<dependency><groupId>io.quarkus</groupId><artifactId>quarkus-scheduler</artifactId></dependency>
+<dependency><groupId>io.quarkus</groupId><artifactId>quarkus-smallrye-health</artifactId></dependency>
+<dependency><groupId>io.quarkus</groupId><artifactId>quarkus-flyway</artifactId></dependency><dependency><groupId>org.flywaydb</groupId><artifactId>flyway-mysql</artifactId></dependency><dependency><groupId>org.apache.kafka</groupId><artifactId>kafka-clients</artifactId></dependency><dependency><groupId>vn.conan</groupId><artifactId>common</artifactId><version>1.0</version></dependency></dependencies>
+<build><plugins><plugin><groupId>io.quarkus</groupId><artifactId>quarkus-maven-plugin</artifactId><version>${quarkus.version}</version><extensions>true</extensions><executions><execution><goals><goal>build</goal></goals></execution></executions></plugin></plugins></build></project>

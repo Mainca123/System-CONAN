@@ -1,0 +1,144 @@
+services:
+  mysql:
+    build:
+      context: .
+      dockerfile: database/Dockerfile
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-conan-local-root}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  kafka:
+    image: apache/kafka:3.9.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+
+  identity:
+    image: quay.io/keycloak/keycloak:26.2.5
+    command: start-dev
+    environment:
+      KC_DB: mysql
+      KC_DB_URL: jdbc:mysql://mysql:3306/identitydb?allowPublicKeyRetrieval=true&useSSL=false
+      KC_DB_USERNAME: identitydb
+      KC_DB_PASSWORD: ${IDENTITYDB_DB_PASSWORD:-demo_identitydb}
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-local-conan-admin}
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC:-http://localhost:8181}
+    ports:
+      - "8181:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  ollama:
+    image: ollama/ollama:0.12.3
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+
+  catalog:
+    build:
+      context: .
+      dockerfile: backend/catalog/Dockerfile
+    environment:
+      PORT: 8081
+      DATABASE_URL: ${CATALOG_DB_URL:-jdbc:mysql://mysql:3306/catalog?allowPublicKeyRetrieval=true&useSSL=false&connectionTimeZone=UTC&characterEncoding=UTF-8}
+      DATABASE_USER: ${CATALOG_DB_USER:-catalog}
+      DATABASE_PASSWORD: ${CATALOG_DB_PASSWORD:-demo_catalog}
+      KAFKA_SERVERS: ${KAFKA_SERVERS:-kafka:9092}
+      KEYCLOAK_INTERNAL: ${KEYCLOAK_INTERNAL:-http://identity:8080}
+      KEYCLOAK_PUBLIC: ${KEYCLOAK_PUBLIC:-http://localhost:8181}
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+
+  orders:
+    build:
+      context: .
+      dockerfile: backend/orders/Dockerfile
+    environment:
+      PORT: 8082
+      DATABASE_URL: ${ORDERS_DB_URL:-jdbc:mysql://mysql:3306/orders?allowPublicKeyRetrieval=true&useSSL=false&connectionTimeZone=UTC&characterEncoding=UTF-8}
+      DATABASE_USER: ${ORDERS_DB_USER:-orders}
+      DATABASE_PASSWORD: ${ORDERS_DB_PASSWORD:-demo_orders}
+      KAFKA_SERVERS: ${KAFKA_SERVERS:-kafka:9092}
+      KEYCLOAK_INTERNAL: ${KEYCLOAK_INTERNAL:-http://identity:8080}
+      KEYCLOAK_PUBLIC: ${KEYCLOAK_PUBLIC:-http://localhost:8181}
+    ports:
+      - "8082:8082"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+
+  assistant:
+    build:
+      context: .
+      dockerfile: backend/assistant/Dockerfile
+    environment:
+      PORT: 8083
+      DATABASE_URL: ${ASSISTANT_DB_URL:-jdbc:mysql://mysql:3306/assistant?allowPublicKeyRetrieval=true&useSSL=false&connectionTimeZone=UTC&characterEncoding=UTF-8}
+      DATABASE_USER: ${ASSISTANT_DB_USER:-assistant}
+      DATABASE_PASSWORD: ${ASSISTANT_DB_PASSWORD:-demo_assistant}
+      KAFKA_SERVERS: ${KAFKA_SERVERS:-kafka:9092}
+      CATALOG_URL: ${CATALOG_URL:-http://catalog:8081}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:0.5b}
+      KEYCLOAK_INTERNAL: ${KEYCLOAK_INTERNAL:-http://identity:8080}
+      KEYCLOAK_PUBLIC: ${KEYCLOAK_PUBLIC:-http://localhost:8181}
+    ports:
+      - "8083:8083"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      catalog:
+        condition: service_started
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      PORT: 80
+      CATALOG_URL: http://catalog:8081
+      ORDERS_URL: http://orders:8082
+      ASSISTANT_URL: http://assistant:8083
+      IDENTITY_URL: ${KEYCLOAK_PUBLIC:-http://localhost:8181}
+    ports:
+      - "8180:80"
+    depends_on:
+      - catalog
+      - orders
+      - assistant
+
+volumes:
+  mysql-data:
+  kafka-data:
+  ollama-models:
